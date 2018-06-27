@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import gci
-
+import struct
 
 BLOCK_SZ = 0x2000
 
@@ -39,8 +39,19 @@ def main():
 
     # Set title of game as shown in game menu
     new_data_tmp[0x640:0x650] = 'ZZ%s' % (args.game_name.ljust(16))
-    new_data_tmp[(0x640+0x1A)] = '\x01'
-    new_data_tmp[(0x640+0x12)] = '\x01'
+
+    # Uncompressed ROM size (0 for none) - divided by 16
+    # TODO: Figure out size from compressed input ROM
+    new_data_tmp[0x640+0x12:0x640+0x14] = struct.pack('>H', 0x2001)
+
+    # Unknown thing size
+    new_data_tmp[0x640+0x14:0x640+0x16] = struct.pack('>H', 0)
+
+    # Banner size (0 for none)
+    new_data_tmp[0x640+0x1A:0x640+0x1C] = struct.pack('>H', 0)
+
+    # Bit flags (high bit: use banner)
+    new_data_tmp[0x640+0x1C] = '\x00'
 
     # Copy in the NES ROM
     new_data_tmp[0x660:0x660+len(romfile)] = romfile
