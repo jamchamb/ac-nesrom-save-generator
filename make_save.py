@@ -68,10 +68,10 @@ def main():
 
     # Bit flags
     # high bit: use banner
-    # 2 bits: text code (0-3)
-    # 2 bits: banner code (0-3)
-    # 2 bits: icon code (0-3)
-    new_data_tmp[0x640+0x1C] = 0b11000000
+    # 2 bits: text code (0-3)    default=1, fromcard=2
+    # 2 bits: banner code (0-3)  default=1
+    # 2 bits: icon code (0-3)    default=1
+    new_data_tmp[0x640+0x1C] = 0b11001010
 
     # Bit flags
     # high bit: ?
