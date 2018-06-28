@@ -38,8 +38,14 @@ def main():
         banner_file = open(args.banner, 'rb').read()
         banner_len = len(banner_file)
 
-    new_count = max(1, block_align(len(romfile), BLOCK_SZ) / BLOCK_SZ)
-    print 'Need %u blocks to contain %s' % (new_count, args.rom_file)
+    # Tag info
+    tag_info = 'END\x00'
+    tag_info_len = len(tag_info)
+
+    total_len = 0x660 + len(romfile) + banner_len + tag_info_len
+
+    new_count = max(1, block_align(total_len, BLOCK_SZ) / BLOCK_SZ)
+    print 'Need %u blocks to contain ROM GCI' % (new_count)
 
     blank_gci['m_gci_header']['Filename'] = 'DobutsunomoriP_F_%s' % ((args.game_name[0:4]).upper())
     blank_gci['m_gci_header']['BlockCount'] = new_count
@@ -59,8 +65,6 @@ def main():
     new_data_tmp[0x640+0x12:0x640+0x14] = struct.pack('>H', nes_rom_len)
 
     # Tag info size
-    tag_info = 'END\x00'
-    tag_info_len = len(tag_info)
     new_data_tmp[0x640+0x14:0x640+0x16] = struct.pack('>H', tag_info_len)
 
     # Banner size (0 for none)
