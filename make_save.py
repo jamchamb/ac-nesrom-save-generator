@@ -58,9 +58,10 @@ def main():
     # Uncompressed ROM size (0 for none) - divided by 16
     new_data_tmp[0x640+0x12:0x640+0x14] = struct.pack('>H', nes_rom_len)
 
-    # Unknown thing size
-    unknown_thing_len = 0x0
-    new_data_tmp[0x640+0x14:0x640+0x16] = struct.pack('>H', unknown_thing_len)
+    # Tag info size
+    tag_info = 'END\x00'
+    tag_info_len = len(tag_info)
+    new_data_tmp[0x640+0x14:0x640+0x16] = struct.pack('>H', tag_info_len)
 
     # Banner size (0 for none)
     new_data_tmp[0x640+0x1A:0x640+0x1C] = struct.pack('>H', banner_len)
@@ -81,22 +82,18 @@ def main():
     new_data_tmp[0x640+0x16] = 0xC0
     new_data_tmp[0x640+0x17] = 0xDE
 
-    # Unpacking order: Unknown thing, Banner, NES Rom
+    # Unpacking order: tag info, Banner, NES Rom
     data_offset = 0x660
 
-    # Copy in unknown thing
-    if unknown_thing_len > 0:
-        new_data_tmp[data_offset:data_offset+unknown_thing_len] = ('\xEE' * unknown_thing_len)
+    # Copy in tag info
+    if tag_info_len > 0:
+        new_data_tmp[data_offset:data_offset+tag_info_len] = tag_info
         # align on 16 byte boundary
-        data_offset += block_align(unknown_thing_len, 16)
+        data_offset += block_align(tag_info_len, 16)
 
     # Copy in banner
     if banner_len > 0:
-        banner_len += 64
-        banner_buffer = ('%s memcard ROM' % args.game_name).ljust(32)
-        banner_buffer += ('%s memcard ROM details' % args.game_name).ljust(32)
-        banner_buffer += banner_file
-        new_data_tmp[data_offset:data_offset+banner_len] = banner_buffer
+        new_data_tmp[data_offset:data_offset+banner_len] = banner_file
         data_offset += block_align(banner_len, 16)
 
     # Copy in the NES ROM
@@ -110,15 +107,13 @@ def main():
 
     # Calculate checksum
     checkbyte = 256 - (checksum % 256)
-
-    if (checksum + checkbyte) % 256 == 0:
-        print 'Checksum: 0x%08x' % (checksum)
-        print 'Check byte: 0x%02x' % (checkbyte)
-
     new_data_tmp[(BLOCK_SZ * new_count)-1] = checkbyte
 
-    blank_gci['m_save_data'] = str(new_data_tmp)
+    print 'Checksum: 0x%08x' % (checksum)
+    print 'Check byte: 0x%02x' % (checkbyte)
 
+    # Save new GCI
+    blank_gci['m_save_data'] = str(new_data_tmp)
     with open(args.out_file, 'wb') as outfile:
         data = gci.write_gci(blank_gci)
         outfile.write(data)
