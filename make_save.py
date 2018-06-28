@@ -1,4 +1,4 @@
-#!/usr/bin/env pyvthon
+#!/usr/bin/env python
 import argparse
 import gci
 import struct
@@ -50,7 +50,7 @@ def main():
     new_data_tmp[0:0x640] = old_data[0][0:0x640]
 
     # Set description to name of the game
-    new_data_tmp[comments_addr+32:comments_addr+64] = ('NES ROM: %s' % (args.game_name)).ljust(32)
+    new_data_tmp[comments_addr+32:comments_addr+64] = ('%s ] ROM ' % (args.game_name)).ljust(32)
 
     # Set title of game as shown in game menu
     new_data_tmp[0x640:0x650] = 'ZZ%s' % (args.game_name.ljust(16))
@@ -67,15 +67,15 @@ def main():
 
     # Bit flags
     # high bit: use banner
-    # 2 bits: text code
-    # 2 bits: banner code
-    # 2 bits: icon code
-    new_data_tmp[0x640+0x1C] = 0xD4  # 1 10 10 10 0
+    # 2 bits: text code (0-3)
+    # 2 bits: banner code (0-3)
+    # 2 bits: icon code (0-3)
+    new_data_tmp[0x640+0x1C] = 0b11000000
 
     # Bit flags
     # high bit: ?
     # 2 bits: banner format
-    new_data_tmp[0x640+0x1D] = 0x40
+    new_data_tmp[0x640+0x1D] = 0b00000000
 
     # Icon format
     new_data_tmp[0x640+0x16] = 0xC0
