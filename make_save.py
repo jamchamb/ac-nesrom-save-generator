@@ -20,6 +20,7 @@ def main():
     parser.add_argument('in_file', type=str, help='Input GCI')
     parser.add_argument('out_file', type=str, help='Output GCI')
     parser.add_argument('--banner', type=str, help='Save banner')
+    parser.add_argument('--gno', type=int, help='GNO')
     args = parser.parse_args()
 
     blank_gci = gci.read_gci(args.in_file)
@@ -39,7 +40,12 @@ def main():
         banner_len = len(banner_file)
 
     # Tag info
-    tag_info = 'END\x00'
+    tag_info = 'ZZZ\x00'  # ignored beginning
+
+    if args.gno is not None:
+        tag_info += 'GNO\x01' + struct.pack('B', args.gno)
+
+    tag_info += 'END\x00'
     tag_info_len = len(tag_info)
 
     total_len = 0x660 + len(romfile) + banner_len + tag_info_len
