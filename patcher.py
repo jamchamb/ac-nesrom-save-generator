@@ -70,18 +70,19 @@ def create_tag_buffer(tags):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('game_name', type=str, help='Game name')
-    parser.add_argument('rom_file', type=str, help='NES Rom')
-    parser.add_argument('in_file', type=str, help='Input GCI')
+    parser.add_argument('game_name', type=str,
+                        help='Game name displayed in NES Console menu')
+    parser.add_argument('rom_file', type=str, help='NES ROM image')
     parser.add_argument('out_file', type=str, help='Output GCI')
     parser.add_argument('--banner', type=str, help='Save banner')
-    #parser.add_argument('--gno', type=int, help='GNO')
     parser.add_argument('-p', '--patch', action='append', nargs=2,
                         metavar=('address', 'bytes'),
-                        help='Hex encoded patch prefixed with location')
+                        help="""Hex encoded patch prefixed with location.
+                        Multiple patches are allowed. Max size of each payload
+                        is 251.""")
     args = parser.parse_args()
 
-    blank_gci = gci.read_gci(args.in_file)
+    blank_gci = gci.read_gci('blank.gci')
 
     comments_addr = blank_gci['m_gci_header']['CommentsAddr']
 
