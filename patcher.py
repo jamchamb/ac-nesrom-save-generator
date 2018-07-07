@@ -1,16 +1,71 @@
 #!/usr/bin/env python
 import argparse
+import binascii
 import gci
 import struct
 
+# Memory card block size
 BLOCK_SZ = 0x2000
 
 
-def block_align(size, block):
+def block_count(data_size, block_size):
+    """The number of blocks of given size required to
+    hold the data."""
+
     blocks = 0
-    while (block * blocks) < size:
+    while (block_size * blocks) < data_size:
         blocks += 1
-    return block * blocks
+
+    return blocks
+
+
+def block_align(data_size, block_size):
+    """Return size of buffer that is a multiple of the
+    block size that can contain the data."""
+    return block_count(data_size, block_size) * block_size
+
+
+def pack_byte(value):
+    return struct.pack('>B', value)
+
+
+def pack_short(value):
+    return struct.pack('>H', value)
+
+
+def pack_int(value):
+    return struct.pack('>I', value)
+
+
+def tag_header(tag, size):
+    return struct.pack('>3sB', tag, size)
+
+
+def create_pat(target_addr, payload):
+    """Create a PAT tag that can patch data into any address
+    between 0x80000000 and 0x807FFFFF.
+
+    The maximum payload size is 255-4 = 251 bytes."""
+
+    if len(payload) > 251:
+        raise Exception('payload too big')
+
+    # Calculate address bytes
+    off_high = ((target_addr >> 16) & 0xFFFF) - 0x7F80
+    off_low = target_addr & 0xFFFF
+
+    tag_data = struct.pack('>BBH', off_high, len(payload), off_low) + payload
+    tag_head = tag_header('PAT', len(tag_data))
+
+    return tag_head + tag_data
+
+
+def create_tag_buffer(tags):
+    tag_info = tag_header('ZZZ', 0)  # ignored beginning
+    tag_info += ''.join(tags)
+    tag_info += tag_header('END', 0)
+
+    return tag_info
 
 
 def main():
@@ -21,8 +76,9 @@ def main():
     parser.add_argument('out_file', type=str, help='Output GCI')
     parser.add_argument('--banner', type=str, help='Save banner')
     #parser.add_argument('--gno', type=int, help='GNO')
-    parser.add_argument('retloc', type=str, help='Location of RET in stack')
-    parser.add_argument('newret', type=str, help='New RET value')
+    parser.add_argument('-p', '--patch', action='append', nargs=2,
+                        metavar=('address', 'bytes'),
+                        help='Hex encoded patch prefixed with location')
     args = parser.parse_args()
 
     blank_gci = gci.read_gci(args.in_file)
@@ -42,31 +98,25 @@ def main():
         banner_len = len(banner_file)
 
     # Tag info
-    tag_info = 'ZZZ\x00'  # ignored beginning
+    tags = []
 
-    target_addr = int(args.retloc, 16)
+    print 'Inserting %u patches' % (len(args.patch))
+    for patch in args.patch:
+        patch_target = int(patch[0], 16)
+        patch_payload = binascii.unhexlify(patch[1])
+        print patch
+        tags.append(create_pat(patch_target, patch_payload))
 
-    off_high = ((target_addr >> 16) & 0xFFFF) - 0x7F80
-    off_low = target_addr & 0xFFFF
-    patch_payload = struct.pack('>I', int(args.newret, 16))
-
-    payload_len = struct.pack('>B', len(patch_payload))
-
-    patch = struct.pack('>B', off_high) + payload_len + struct.pack('>H', off_low) + patch_payload
-
-    patch_len = struct.pack('>B', len(patch))
-
-    tag_info += 'PAT' + patch_len + patch
-
-    tag_info += 'END\x00'
+    tag_info = create_tag_buffer(tags)
     tag_info_len = len(tag_info)
 
     total_len = 0x660 + len(romfile) + banner_len + tag_info_len
 
-    new_count = max(1, block_align(total_len, BLOCK_SZ) / BLOCK_SZ)
+    new_count = max(1, block_count(total_len, BLOCK_SZ))
     print 'Need %u blocks to contain ROM GCI' % (new_count)
 
-    blank_gci['m_gci_header']['Filename'] = 'DobutsunomoriP_F_%s' % ((args.game_name[0:4]).upper())
+    blank_gci['m_gci_header']['Filename'] = 'DobutsunomoriP_F_%s' % (
+        (args.game_name[0:4]).upper())
     blank_gci['m_gci_header']['BlockCount'] = new_count
 
     # Copy beginning of NES SAVE file (includes save icon, game name)
@@ -75,19 +125,21 @@ def main():
     new_data_tmp[0:0x640] = old_data[0][0:0x640]
 
     # Set description to name of the game
-    new_data_tmp[comments_addr+32:comments_addr+64] = ('%s ] ROM ' % (args.game_name)).ljust(32)
+    new_data_tmp[comments_addr+32:comments_addr+64] = ('%s ] ROM ' % (
+        args.game_name)).ljust(32)
 
     # Set title of game as shown in game menu
     new_data_tmp[0x640:0x650] = 'ZZ%s' % (args.game_name.ljust(16))
 
     # Uncompressed ROM size (0 for none) - divided by 16
-    new_data_tmp[0x640+0x12:0x640+0x14] = struct.pack('>H', nes_rom_len)
+    # Force it to be 0 so the ROM data isn't run
+    new_data_tmp[0x640+0x12:0x640+0x14] = pack_short(0)
 
     # Tag info size
-    new_data_tmp[0x640+0x14:0x640+0x16] = struct.pack('>H', tag_info_len)
+    new_data_tmp[0x640+0x14:0x640+0x16] = pack_short(tag_info_len)
 
     # Banner size (0 for none)
-    new_data_tmp[0x640+0x1A:0x640+0x1C] = struct.pack('>H', banner_len)
+    new_data_tmp[0x640+0x1A:0x640+0x1C] = pack_short(banner_len)
 
     # Bit flags
     # high bit: use banner
@@ -102,8 +154,8 @@ def main():
     new_data_tmp[0x640+0x1D] = 0b00000000
 
     # Icon format
-    new_data_tmp[0x640+0x16] = 0xC0
-    new_data_tmp[0x640+0x17] = 0xDE
+    new_data_tmp[0x640+0x16] = 0x00
+    new_data_tmp[0x640+0x17] = 0x00
 
     # Unpacking order: tag info, Banner, NES Rom
     data_offset = 0x660
