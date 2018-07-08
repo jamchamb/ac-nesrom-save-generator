@@ -89,7 +89,7 @@ def main():
     # Load ROM file
     romfile = open(args.rom_file, 'rb').read()
     # TODO: Figure out size from compressed input ROM
-    nes_rom_len = 0x2001
+    nes_rom_len = len(romfile)
 
     # Load banner file
     banner_len = 0x0
@@ -134,7 +134,7 @@ def main():
 
     # Uncompressed ROM size (0 for none) - divided by 16
     # Force it to be 0 so the ROM data isn't run
-    new_data_tmp[0x640+0x12:0x640+0x14] = pack_short(0)
+    new_data_tmp[0x640+0x12:0x640+0x14] = pack_short(nes_rom_len)
 
     # Tag info size
     new_data_tmp[0x640+0x14:0x640+0x16] = pack_short(tag_info_len)
