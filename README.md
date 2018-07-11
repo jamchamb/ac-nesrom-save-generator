@@ -10,7 +10,27 @@ $ pip install -r requirements.txt
 
 You may want to use a [virtual environment](https://virtualenv.pypa.io/en/stable/) for this.
 
-## `patcher.py`
+## ROM files
+
+`make_save.py` can generate save files that contain playable NES ROMs.
+To create a new file, provide the name of the game, the path to the ROM image, and the path
+to the output GCI file.
+
+    $ ./make_save.py "Mega Man" "Mega Man (USA).szs" mega_man_nes.gci
+    Need 12 blocks to contain ROM GCI
+    Checksum: 0x00973e8e
+    Check byte: 0x72
+
+The ROM image can optionally be compressed in "Yaz0" ("szs") format using a tool
+like wszstools.
+
+Use a memory card manager to import the GCI file to a memory card, and then use
+the "NES Console" item to play the ROM.
+
+## Patcher files
+
+`patcher.py` can be used to generate NES ROM files that contain patch tags. These
+tags can be used to patch code and data in memory.
 
 Example usage of `patcher.py`:
 

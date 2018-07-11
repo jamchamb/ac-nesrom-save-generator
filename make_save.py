@@ -17,13 +17,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('game_name', type=str, help='Game name')
     parser.add_argument('rom_file', type=str, help='NES Rom')
-    parser.add_argument('in_file', type=str, help='Input GCI')
     parser.add_argument('out_file', type=str, help='Output GCI')
     parser.add_argument('--banner', type=str, help='Save banner')
     parser.add_argument('--gno', type=int, help='GNO')
     args = parser.parse_args()
 
-    blank_gci = gci.read_gci(args.in_file)
+    blank_gci = gci.read_gci('blank.gci')
 
     comments_addr = blank_gci['m_gci_header']['CommentsAddr']
 
@@ -89,8 +88,8 @@ def main():
     new_data_tmp[0x640+0x1D] = 0b00000000
 
     # Icon format
-    new_data_tmp[0x640+0x16] = 0xC0
-    new_data_tmp[0x640+0x17] = 0xDE
+    new_data_tmp[0x640+0x16] = 0x00
+    new_data_tmp[0x640+0x17] = 0x00
 
     # Unpacking order: tag info, Banner, NES Rom
     data_offset = 0x660
