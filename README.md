@@ -1,5 +1,15 @@
 # ac-nesrom-save-generator
 
+## Setup
+
+Use `pip` to install dependencies:
+
+```
+$ pip install -r requirements.txt
+```
+
+You may want to use a [virtual environment](https://virtualenv.pypa.io/en/stable/) for this.
+
 ## `patcher.py`
 
 Example usage of `patcher.py`:
