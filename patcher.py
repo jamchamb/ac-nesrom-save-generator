@@ -45,6 +45,49 @@ CUYLER_LOADER = binascii.unhexlify(
     "4E80002000000000"
 )
 
+# loads multiple big patches (one last one can be executable to auto-jump to)
+CUYLER_MULTI_LOADER = binascii.unhexlify(
+    "9421FFD07C0802A6"
+    "900100349061001C"
+    "9081001890A10014"
+    "90C1001090E1000C"
+    "3C60801F38636C64"
+    "8063000028030000"
+    "418200A880E30000"
+    "3863000490610020"
+    "4182009880610020"
+    "8083000028040000"
+    "4182008890810028"
+    "80C3000890C10024"
+    "80C3000490C1002C"
+    "38A3000C2C060000"
+    "4081001C88650000"
+    "9864000038840001"
+    "38A5000138C6FFFF"
+    "4BFFFFE490A10020"
+    "8081002C80610028"
+    "548006FF41820008"
+    "388400203884001F"
+    "5484D97E7C8903A6"
+    "7C001FAC7C001BAC"
+    "386300204200FFF4"
+    "7C0004AC4C00012C"
+    "38E7FFFF28070000"
+    "418200084BFFFF70"
+    "8061001C3CA08062"
+    "60A5D4CC3CC0806D"
+    "60C64B9C90A60000"
+    "7CA903A64E800421"
+    "8081002428040000"
+    "4182001480810028"
+    "800100347C8803A6"
+    "4800000C80010034"
+    "7C0803A680810018"
+    "80A1001480C10010"
+    "80E1000C38210030"
+    "4E80002000000000"
+)
+
 
 def block_count(data_size, block_size):
     """The number of blocks of given size required to
@@ -145,8 +188,10 @@ def main():
     # Insert loader
     if args.loader:
         print 'Inserting loader'
-        loader_patch1 = create_pat(CUYLER_LOADER_ADDR, CUYLER_LOADER[0:250])
-        loader_patch2 = create_pat(CUYLER_LOADER_ADDR+250, CUYLER_LOADER[250:])
+        loader_patch1 = create_pat(CUYLER_LOADER_ADDR,
+                                   CUYLER_MULTI_LOADER[0:250])
+        loader_patch2 = create_pat(CUYLER_LOADER_ADDR+250,
+                                   CUYLER_MULTI_LOADER[250:])
         loader_jump = create_pat(0x806D4B9C, pack_int(0x80003970))
         tags.append(loader_patch1)
         tags.append(loader_patch2)
