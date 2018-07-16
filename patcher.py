@@ -7,6 +7,44 @@ import struct
 # Memory card block size
 BLOCK_SZ = 0x2000
 
+# Patch loader patch by Cuyler36
+CUYLER_LOADER_ADDR = 0x80003970
+CUYLER_LOADER = binascii.unhexlify(
+    "9421FFD07C0802A6"
+    "900100209061001C"
+    "9081001890A10014"
+    "90C100103C60801F"
+    "38636C6480630000"
+    "2803000041820000"
+    "8083000028040000"
+    "4182000090810028"
+    "80C3000890C10024"
+    "80C3000490C1002C"
+    "38A3000C2C060000"
+    "4081001C88650000"
+    "9864000038840001"
+    "38A5000138C6FFFF"
+    "4BFFFFE48081002C"
+    "80610028548006FF"
+    "4182000838840020"
+    "3884001F5484D97E"
+    "7C8903A67C001FAC"
+    "7C001BAC38630020"
+    "4200FFF47C0004AC"
+    "4C00012C8061001C"
+    "3CA0806260A5D4CC"
+    "3CC0806D60C64B9C"
+    "90A600007CA903A6"
+    "4E80042180810024"
+    "2804000041820014"
+    "8081002880010020"
+    "7C8803A64800000C"
+    "800100207C0803A6"
+    "8081001880A10014"
+    "80C1001038210030"
+    "4E80002000000000"
+)
+
 
 def block_count(data_size, block_size):
     """The number of blocks of given size required to
@@ -74,6 +112,9 @@ def main():
                         help='Game name displayed in NES Console menu')
     parser.add_argument('rom_file', type=str, help='NES ROM image')
     parser.add_argument('out_file', type=str, help='Output GCI')
+    parser.add_argument('--loader', action='store_true', default=False,
+                        help='Insert patch loader patch to read '
+                             'big patches from ROM data')
     parser.add_argument('--banner', type=str, help='Save banner')
     parser.add_argument('-p', '--patch', action='append', nargs=2,
                         metavar=('address', 'bytes'),
@@ -101,12 +142,23 @@ def main():
     # Tag info
     tags = []
 
-    print 'Inserting %u patches' % (len(args.patch))
-    for patch in args.patch:
-        patch_target = int(patch[0], 16)
-        patch_payload = binascii.unhexlify(patch[1])
-        print patch
-        tags.append(create_pat(patch_target, patch_payload))
+    # Insert loader
+    if args.loader:
+        print 'Inserting loader'
+        loader_patch1 = create_pat(CUYLER_LOADER_ADDR, CUYLER_LOADER[0:250])
+        loader_patch2 = create_pat(CUYLER_LOADER_ADDR+250, CUYLER_LOADER[250:])
+        loader_jump = create_pat(0x806D4B9C, pack_int(0x80003970))
+        tags.append(loader_patch1)
+        tags.append(loader_patch2)
+        tags.append(loader_jump)
+
+    if args.patch is not None:
+        print 'Inserting %u patches' % (len(args.patch))
+        for patch in args.patch:
+            patch_target = int(patch[0], 16)
+            patch_payload = binascii.unhexlify(patch[1])
+            print patch
+            tags.append(create_pat(patch_target, patch_payload))
 
     tag_info = create_tag_buffer(tags)
     tag_info_len = len(tag_info)
