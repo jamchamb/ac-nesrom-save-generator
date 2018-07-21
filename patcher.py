@@ -45,7 +45,8 @@ CUYLER_LOADER = binascii.unhexlify(
     "4E80002000000000"
 )
 
-# loads multiple big patches (one last one can be executable to auto-jump to)
+# - loads multiple big patches (one last one can be executable to auto-jump to)
+# - uses a different calling convention for executable patches
 CUYLER_MULTI_LOADER = binascii.unhexlify(
     "9421FFD07C0802A6"
     "900100349061001C"
@@ -74,18 +75,17 @@ CUYLER_MULTI_LOADER = binascii.unhexlify(
     "7C0004AC4C00012C"
     "38E7FFFF28070000"
     "418200084BFFFF70"
+    "8081002428040000"
+    "4182001080810028"
+    "7C8903A64E800421"
     "8061001C3CA08062"
     "60A5D4CC3CC0806D"
     "60C64B9C90A60000"
     "7CA903A64E800421"
-    "8081002428040000"
-    "4182001480810028"
-    "800100347C8803A6"
-    "4800000C80010034"
-    "7C0803A680810018"
-    "80A1001480C10010"
-    "80E1000C38210030"
-    "4E80002000000000"
+    "800100347C0803A6"
+    "8081001880A10014"
+    "80C1001080E1000C"
+    "382100304E800020"
 )
 
 
@@ -158,6 +158,9 @@ def main():
     parser.add_argument('--loader', action='store_true', default=False,
                         help='Insert patch loader patch to read '
                              'big patches from ROM data')
+    parser.add_argument('--autoheader', type=str,
+                        help='Automatically generate a loader header for an '
+                        'executable big patch')
     parser.add_argument('--banner', type=str, help='Save banner')
     parser.add_argument('-p', '--patch', action='append', nargs=2,
                         metavar=('address', 'bytes'),
@@ -173,6 +176,18 @@ def main():
     # Load ROM file
     romfile = open(args.rom_file, 'rb').read()
     # TODO: Figure out size from compressed input ROM
+
+    if args.autoheader:
+        args.loader = True
+        auto_target = int(args.autoheader, 16)
+        loader_header = struct.pack('>IIII',
+                                    1,  # number of patches
+                                    auto_target,  # target address
+                                    len(romfile),  # size of big patch
+                                    1  # is executable
+                                    )
+        romfile = loader_header + romfile
+
     nes_rom_len = len(romfile)
 
     # Load banner file
