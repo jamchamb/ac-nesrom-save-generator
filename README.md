@@ -8,6 +8,12 @@ Use `pip` to install dependencies:
 $ pip install -r requirements.txt
 ```
 
+Then install the script with:
+
+```
+$ python setup.py install
+```
+
 You may want to use a [virtual environment](https://virtualenv.pypa.io/en/stable/) for this.
 
 ## ROM files
@@ -16,7 +22,7 @@ This tool can generate Animal Crossing save files that contain playable NES ROMs
 To create a new file, provide the name of the game, the path to the ROM image, and the path
 to the output GCI file.
 
-    $ ./ac-nesrom-gen.py "Mega Man" "Mega Man (USA).szs" mega_man_nes.gci
+    $ ac-nesrom-gen "Mega Man" "Mega Man (USA).szs" mega_man_nes.gci
     Need 12 blocks to contain ROM GCI
     Checksum: 0x00973e8e
     Check byte: 0x72
@@ -37,7 +43,7 @@ tags can be used to patch code and data in memory.
 
 Example usage of the patch options:
 
-    $ ./ac-nesrom-gen.py Patcher /dev/null zuru_mode_2.gci -p 80206F9c 0000007D
+    $ ac-nesrom-gen Patcher /dev/null zuru_mode_2.gci -p 80206F9c 0000007D
 
 Each `-p`/`--patch` option inserts a small ROM tag patch (251 bytes or less) within
 the address range `0x80000000` - `0x807FFFFF`.
