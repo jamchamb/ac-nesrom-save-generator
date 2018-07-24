@@ -175,7 +175,6 @@ def main():
 
     # Load ROM file
     romfile = open(args.rom_file, 'rb').read()
-    # TODO: Figure out size from compressed input ROM
 
     if args.autoheader:
         args.loader = True
@@ -188,7 +187,11 @@ def main():
                                     )
         romfile = loader_header + romfile
 
-    nes_rom_len = len(romfile)
+    if romfile[0:4] == 'Yaz0' and not args.loader:
+        # If it's Yaz0 compressed get the size int from header
+        nes_rom_len = struct.unpack('>I', romfile[4:8])[0]
+    else:
+        nes_rom_len = len(romfile)
 
     # Load banner file
     banner_len = 0x0
@@ -246,7 +249,7 @@ def main():
 
     # Uncompressed ROM size (0 for none) - divided by 16
     # Force it to be 0 so the ROM data isn't run
-    new_data_tmp[0x640+0x12:0x640+0x14] = pack_short(nes_rom_len)
+    new_data_tmp[0x640+0x12:0x640+0x14] = pack_short(nes_rom_len >> 4)
 
     # Tag info size
     new_data_tmp[0x640+0x14:0x640+0x16] = pack_short(tag_info_len)
@@ -290,11 +293,11 @@ def main():
 
     checksum = 0
     for b in new_data_tmp:
-        checksum += (b % 256)
-        checksum = checksum % (2**32)
+        checksum += b & 0xFF
+        checksum = checksum & 0xFFFFFFFF
 
     # Calculate checksum
-    checkbyte = (256 - (checksum & 0xFF)) % 256
+    checkbyte = 256 - (checksum & 0xFF)
     new_data_tmp[(BLOCK_SZ * new_count)-1] = checkbyte
 
     print 'Checksum: 0x%08x' % (checksum)

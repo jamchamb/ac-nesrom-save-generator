@@ -12,11 +12,11 @@ You may want to use a [virtual environment](https://virtualenv.pypa.io/en/stable
 
 ## ROM files
 
-`make_save.py` can generate save files that contain playable NES ROMs.
+This tool can generate Animal Crossing save files that contain playable NES ROMs.
 To create a new file, provide the name of the game, the path to the ROM image, and the path
 to the output GCI file.
 
-    $ ./make_save.py "Mega Man" "Mega Man (USA).szs" mega_man_nes.gci
+    $ ./ac-nesrom-gen.py "Mega Man" "Mega Man (USA).szs" mega_man_nes.gci
     Need 12 blocks to contain ROM GCI
     Checksum: 0x00973e8e
     Check byte: 0x72
@@ -27,14 +27,17 @@ like wszstools.
 Use a memory card manager to import the GCI file to a memory card, and then use
 the "NES Console" item to play the ROM.
 
+If you're playing on Dolphin, disable anti-aliasing when playing NES games to
+get a better picture.
+
 ## Patcher files
 
-`patcher.py` can be used to generate NES ROM files that contain patch tags. These
+This tool can also be used to generate NES ROM files that contain patch tags. These
 tags can be used to patch code and data in memory.
 
-Example usage of `patcher.py`:
+Example usage of the patch options:
 
-    $ ./patcher.py Patcher /dev/null zuru_mode_2.gci -p 80206F9c 0000007D
+    $ ./ac-nesrom-gen.py Patcher /dev/null zuru_mode_2.gci -p 80206F9c 0000007D
 
 Each `-p`/`--patch` option inserts a small ROM tag patch (251 bytes or less) within
 the address range `0x80000000` - `0x807FFFFF`.
