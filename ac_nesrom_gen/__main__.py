@@ -7,86 +7,9 @@ import struct
 # Memory card block size
 BLOCK_SZ = 0x2000
 
-# Patch loader patch by Cuyler36
-CUYLER_LOADER_ADDR = 0x80003970
-CUYLER_LOADER = binascii.unhexlify(
-    "9421FFD07C0802A6"
-    "900100209061001C"
-    "9081001890A10014"
-    "90C100103C60801F"
-    "38636C6480630000"
-    "2803000041820000"
-    "8083000028040000"
-    "4182000090810028"
-    "80C3000890C10024"
-    "80C3000490C1002C"
-    "38A3000C2C060000"
-    "4081001C88650000"
-    "9864000038840001"
-    "38A5000138C6FFFF"
-    "4BFFFFE48081002C"
-    "80610028548006FF"
-    "4182000838840020"
-    "3884001F5484D97E"
-    "7C8903A67C001FAC"
-    "7C001BAC38630020"
-    "4200FFF47C0004AC"
-    "4C00012C8061001C"
-    "3CA0806260A5D4CC"
-    "3CC0806D60C64B9C"
-    "90A600007CA903A6"
-    "4E80042180810024"
-    "2804000041820014"
-    "8081002880010020"
-    "7C8803A64800000C"
-    "800100207C0803A6"
-    "8081001880A10014"
-    "80C1001038210030"
-    "4E80002000000000"
-)
-
-# - loads multiple big patches (one last one can be executable to auto-jump to)
-# - uses a different calling convention for executable patches
-CUYLER_MULTI_LOADER = binascii.unhexlify(
-    "9421FFD07C0802A6"
-    "900100349061001C"
-    "9081001890A10014"
-    "90C1001090E1000C"
-    "3C60801F38636C64"
-    "8063000028030000"
-    "418200A880E30000"
-    "3863000490610020"
-    "4182009880610020"
-    "8083000028040000"
-    "4182008890810028"
-    "80C3000890C10024"
-    "80C3000490C1002C"
-    "38A3000C2C060000"
-    "4081001C88650000"
-    "9864000038840001"
-    "38A5000138C6FFFF"
-    "4BFFFFE490A10020"
-    "8081002C80610028"
-    "548006FF41820008"
-    "388400203884001F"
-    "5484D97E7C8903A6"
-    "7C001FAC7C001BAC"
-    "386300204200FFF4"
-    "7C0004AC4C00012C"
-    "38E7FFFF28070000"
-    "418200084BFFFF70"
-    "8081002428040000"
-    "4182001080810028"
-    "7C8903A64E800421"
-    "8061001C3CA08062"
-    "60A5D4CC3CC0806D"
-    "60C64B9C90A60000"
-    "7CA903A64E800421"
-    "800100347C0803A6"
-    "8081001880A10014"
-    "80C1001080E1000C"
-    "382100304E800020"
-)
+ZELDA_FREE = 0x806D4B9C
+LOADER_ADDR = 0x80003970
+MULTI_LOADER = open('ac-patch-loader.patch', 'rb').read()
 
 
 def block_count(data_size, block_size):
@@ -189,9 +112,10 @@ def main():
 
     if romfile[0:4] == 'Yaz0' and not args.loader:
         # If it's Yaz0 compressed get the size int from header
-        nes_rom_len = struct.unpack('>I', romfile[4:8])[0]
+        uncompressed_size = struct.unpack('>I', romfile[4:8])[0]
+        nes_rom_len = block_align(uncompressed_size, 16)
     else:
-        nes_rom_len = len(romfile)
+        nes_rom_len = block_align(len(romfile), 16)
 
     # Load banner file
     banner_len = 0x0
@@ -206,13 +130,12 @@ def main():
     # Insert loader
     if args.loader:
         print 'Inserting loader'
-        loader_patch1 = create_pat(CUYLER_LOADER_ADDR,
-                                   CUYLER_MULTI_LOADER[0:250])
-        loader_patch2 = create_pat(CUYLER_LOADER_ADDR+250,
-                                   CUYLER_MULTI_LOADER[250:])
-        loader_jump = create_pat(0x806D4B9C, pack_int(0x80003970))
-        tags.append(loader_patch1)
-        tags.append(loader_patch2)
+        for pos in range(0, len(MULTI_LOADER), 251):
+            patch_slice = create_pat(LOADER_ADDR + pos,
+                                     MULTI_LOADER[pos:pos+251])
+            tags.append(patch_slice)
+
+        loader_jump = create_pat(ZELDA_FREE, pack_int(LOADER_ADDR))
         tags.append(loader_jump)
 
     if args.patch is not None:
@@ -226,7 +149,7 @@ def main():
     tag_info = create_tag_buffer(tags)
     tag_info_len = len(tag_info)
 
-    total_len = 0x660 + len(romfile) + banner_len + tag_info_len
+    total_len = 0x660 + nes_rom_len + banner_len + tag_info_len
 
     new_count = max(1, block_count(total_len, BLOCK_SZ))
     print 'Need %u blocks to contain ROM GCI' % (new_count)

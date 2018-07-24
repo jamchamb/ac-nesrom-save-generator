@@ -1,1 +1,2 @@
 include blank.gci
+include ac-patch-loader.patch
