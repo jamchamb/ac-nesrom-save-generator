@@ -1,2 +1,2 @@
-include blank.gci
-include ac-patch-loader.patch
+include data/blank.gci
+include data/loader.bin

@@ -2,6 +2,7 @@
 import argparse
 import binascii
 import gci
+from pkg_resources import resource_stream, resource_filename, Requirement
 import struct
 
 # Memory card block size
@@ -9,7 +10,12 @@ BLOCK_SZ = 0x2000
 
 ZELDA_FREE = 0x806D4B9C
 LOADER_ADDR = 0x80003970
-MULTI_LOADER = open('ac-patch-loader.patch', 'rb').read()
+
+MULTI_LOADER = resource_stream(Requirement.parse('ac_nesrom_gen'),
+                               'data/loader.bin').read()
+
+BLANK_GCI_FILE = resource_filename(Requirement.parse('ac_nesrom_gen'),
+                                   'data/blank.gci')
 
 
 def block_count(data_size, block_size):
@@ -92,7 +98,7 @@ def main():
                         is 251.""")
     args = parser.parse_args()
 
-    blank_gci = gci.read_gci('blank.gci')
+    blank_gci = gci.read_gci(BLANK_GCI_FILE)
 
     comments_addr = blank_gci['m_gci_header']['CommentsAddr']
 
