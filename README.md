@@ -48,10 +48,12 @@ Example usage of the patch options:
 Each `-p`/`--patch` option inserts a small ROM tag patch (251 bytes or less) within
 the address range `0x80000000` - `0x807FFFFF`.
 
-The input ROM file argument can be non-ROM data or empty (`/dev/null`) if it's not needed.
-Larger patches can be stored here for use with a loader set up through ROM tag patches.
+Larger patches, including code patches, can be inserted into the ROM data section.
+Use the `--loader` option to insert a patch loader that automatically loads big patches
+from the ROM data section, and supply the path to a patch file where the ROM file path
+would normally go.
 
-Directly patching code may not working due to instruction caching.
-The `ICInvalidateRange` function can be used to refresh instructions after patching, but
-requires some initial loader setup to call. This can be achieved by overwriting a function
-pointer to point to a small subroutine.
+    $ ac-nesrom-gen --loader "printf" printf_c.patch printf_c.gci
+
+See the [ac-patch-loader](https://github.com/jamchamb/ac-patch-loader) repo
+for patch format and calling conventions.
