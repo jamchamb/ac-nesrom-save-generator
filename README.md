@@ -43,7 +43,7 @@ tags can be used to patch code and data in memory.
 
 Example usage of the patch options:
 
-    $ ac-nesrom-gen Patcher /dev/null zuru_mode_2.gci -p 80206F9c 0000007D
+    $ ac-nesrom-gen "Zuru2 Patch" /dev/null zuru_mode_2.gci -p 80206F9c 0000007D
 
 Each `-p`/`--patch` option inserts a small ROM tag patch (251 bytes or less) within
 the address range `0x80000000` - `0x807FFFFF`.
