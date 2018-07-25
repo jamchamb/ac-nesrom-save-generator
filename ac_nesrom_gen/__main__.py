@@ -227,7 +227,7 @@ def main():
         checksum = checksum & 0xFFFFFFFF
 
     # Calculate checksum
-    checkbyte = 256 - (checksum & 0xFF)
+    checkbyte = (256 - (checksum & 0xFF)) & 0xFF
     new_data_tmp[(BLOCK_SZ * new_count)-1] = checkbyte
 
     print 'Checksum: 0x%08x' % (checksum)
