@@ -55,5 +55,11 @@ would normally go.
 
     $ ac-nesrom-gen --loader "printf" printf_c.patch printf_c.gci
 
+If a patch only needs to run once upon loading, the `--autoheader` option
+can be used to generate a header for it automatically. It takes the load address
+of the patch as an argument.
+
+    $ ac-nesrom-gen --loader --autoheader 80002000 "Test" test.patch test.gci
+
 See the [ac-patch-loader](https://github.com/jamchamb/ac-patch-loader) repo
 for patch format and calling conventions.

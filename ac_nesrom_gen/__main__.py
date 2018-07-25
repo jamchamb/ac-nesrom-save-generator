@@ -84,12 +84,13 @@ def main():
                         help='Game name displayed in NES Console menu')
     parser.add_argument('rom_file', type=str, help='NES ROM image')
     parser.add_argument('out_file', type=str, help='Output GCI')
-    parser.add_argument('--loader', action='store_true', default=False,
-                        help='Insert patch loader patch to read '
+    parser.add_argument('-l', '--loader', action='store_true', default=False,
+                        help='Insert patch loader to read '
                              'big patches from ROM data')
     parser.add_argument('--autoheader', type=str,
                         help='Automatically generate a loader header for an '
-                        'executable big patch')
+                        'executable big patch. Takes target address of the '
+                        'patch.')
     parser.add_argument('--banner', type=str, help='Save banner')
     parser.add_argument('-p', '--patch', action='append', nargs=2,
                         metavar=('address', 'bytes'),
