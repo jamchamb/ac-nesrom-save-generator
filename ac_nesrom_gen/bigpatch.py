@@ -43,8 +43,8 @@ class BigPatchGenerator:
 
             for patch in patches:
                 flags = 0
-                if 'jump' in patch:
-                    if patch['jump']:
+                if 'flags' in patch:
+                    if patch['flags'].get('jump'):
                         flags |= 1
 
                 if 'file' in patch:
