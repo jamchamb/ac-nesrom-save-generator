@@ -63,3 +63,24 @@ of the patch as an argument.
 
 See the [ac-patch-loader](https://github.com/jamchamb/ac-patch-loader) repo
 for patch format and calling conventions.
+
+## Big patch generator
+
+YAML files describing a series of big patches and settings can be used to generate
+the big patch section content automatically.
+
+This example includes two patches. It uses a hex string to overwrite one instruction
+at `0x80404E24`, and then loads a larger patch from the file `debug_printf_c.patch`
+to be inserted at `0x80002000`.
+
+```yaml
+settings:
+    jut_console: false
+
+patches:
+  - target: 0x80404E24
+    bytes: '4BBFD1DD'
+
+  - target: 0x80002000
+    file: debug_printf_c.patch
+```
