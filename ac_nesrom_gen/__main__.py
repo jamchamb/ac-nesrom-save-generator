@@ -2,8 +2,12 @@
 import argparse
 import binascii
 import gci
-from pkg_resources import resource_stream, resource_filename, Requirement
 import struct
+import pkg_resources
+from .util import (block_count, block_align, pack_byte,
+                   pack_short, pack_int, calcsum_byte,
+                   yaz0_size)
+from .pat_tags import (create_pat, create_tag_buffer)
 
 # Memory card block size
 BLOCK_SZ = 0x2000
@@ -11,71 +15,15 @@ BLOCK_SZ = 0x2000
 ZELDA_FREE = 0x806D4B9C
 LOADER_ADDR = 0x80003970
 
-MULTI_LOADER = resource_stream(Requirement.parse('ac_nesrom_gen'),
-                               'data/loader.bin').read()
+MULTI_LOADER = pkg_resources.resource_stream(
+    pkg_resources.Requirement.parse('ac_nesrom_gen'),
+    'data/loader.bin'
+).read()
 
-BLANK_GCI_FILE = resource_filename(Requirement.parse('ac_nesrom_gen'),
-                                   'data/blank.gci')
-
-
-def block_count(data_size, block_size):
-    """The number of blocks of given size required to
-    hold the data."""
-
-    blocks = 0
-    while (block_size * blocks) < data_size:
-        blocks += 1
-
-    return blocks
-
-
-def block_align(data_size, block_size):
-    """Return size of buffer that is a multiple of the
-    block size that can contain the data."""
-    return block_count(data_size, block_size) * block_size
-
-
-def pack_byte(value):
-    return struct.pack('>B', value)
-
-
-def pack_short(value):
-    return struct.pack('>H', value)
-
-
-def pack_int(value):
-    return struct.pack('>I', value)
-
-
-def tag_header(tag, size):
-    return struct.pack('>3sB', tag, size)
-
-
-def create_pat(target_addr, payload):
-    """Create a PAT tag that can patch data into any address
-    between 0x80000000 and 0x807FFFFF.
-
-    The maximum payload size is 255-4 = 251 bytes."""
-
-    if len(payload) > 251:
-        raise Exception('payload too big')
-
-    # Calculate address bytes
-    off_high = ((target_addr >> 16) & 0xFFFF) - 0x7F80
-    off_low = target_addr & 0xFFFF
-
-    tag_data = struct.pack('>BBH', off_high, len(payload), off_low) + payload
-    tag_head = tag_header('PAT', len(tag_data))
-
-    return tag_head + tag_data
-
-
-def create_tag_buffer(tags):
-    tag_info = tag_header('ZZZ', 0)  # ignored beginning
-    tag_info += ''.join(tags)
-    tag_info += tag_header('END', 0)
-
-    return tag_info
+BLANK_GCI_FILE = pkg_resources.resource_filename(
+    pkg_resources.Requirement.parse('ac_nesrom_gen'),
+    'data/blank.gci'
+)
 
 
 def main():
@@ -119,8 +67,7 @@ def main():
 
     if romfile[0:4] == 'Yaz0' and not args.loader:
         # If it's Yaz0 compressed get the size int from header
-        uncompressed_size = struct.unpack('>I', romfile[4:8])[0]
-        nes_rom_len = block_align(uncompressed_size, 16)
+        nes_rom_len = block_align(yaz0_size(romfile), 16)
     else:
         nes_rom_len = block_align(len(romfile), 16)
 
@@ -221,20 +168,13 @@ def main():
     if nes_rom_len > 0:
         new_data_tmp[data_offset:data_offset+len(romfile)] = romfile
 
-    checksum = 0
-    for b in new_data_tmp:
-        checksum += b & 0xFF
-        checksum = checksum & 0xFFFFFFFF
-
     # Calculate checksum
-    checkbyte = (256 - (checksum & 0xFF)) & 0xFF
+    checkbyte = calcsum_byte(new_data_tmp, verbose=True)
     new_data_tmp[(BLOCK_SZ * new_count)-1] = checkbyte
-
-    print 'Checksum: 0x%08x' % (checksum)
-    print 'Check byte: 0x%02x' % (checkbyte)
 
     # Save new GCI
     blank_gci['m_save_data'] = str(new_data_tmp)
+
     with open(args.out_file, 'wb') as outfile:
         data = gci.write_gci(blank_gci)
         outfile.write(data)
