@@ -1,32 +1,61 @@
 import struct
 
 
+MAX_PATCH_SIZE = 251
+
+
 def tag_header(tag, size):
     return struct.pack('>3sB', tag, size)
 
 
-def create_pat(target_addr, payload):
-    """Create a PAT tag that can patch data into any address
-    between 0x80000000 and 0x807FFFFF.
+class TagInfoGenerator:
 
-    The maximum payload size is 255-4 = 251 bytes."""
+    def __init__(self, flags=0):
+        self.tags = []
+        self.__add_begin()
 
-    if len(payload) > 251:
-        raise Exception('payload too big')
+    def __add_tag(self, tag):
+        self.tags.append(tag)
 
-    # Calculate address bytes
-    off_high = ((target_addr >> 16) & 0xFFFF) - 0x7F80
-    off_low = target_addr & 0xFFFF
+    def __add_begin(self):
+        begin = tag_header('ZZZ', 0)
+        self.__add_tag(begin)
 
-    tag_data = struct.pack('>BBH', off_high, len(payload), off_low) + payload
-    tag_head = tag_header('PAT', len(tag_data))
+    def __add_end(self):
+        end = tag_header('END', 0)
+        self.__add_tag(end)
 
-    return tag_head + tag_data
+    def add_patch(self, target_addr, payload):
+        """Create a PAT tag that can patch data into any address
+        between 0x80000000 and 0x807FFFFF.
 
+        The maximum payload size is 255-4 = 251 bytes."""
 
-def create_tag_buffer(tags):
-    tag_info = tag_header('ZZZ', 0)  # ignored beginning
-    tag_info += ''.join(tags)
-    tag_info += tag_header('END', 0)
+        if len(payload) > MAX_PATCH_SIZE:
+            return self.add_multi_patch(target_addr, payload)
 
-    return tag_info
+        # Calculate address bytes
+        off_high = ((target_addr >> 16) & 0xFFFF) - 0x7F80
+        off_low = target_addr & 0xFFFF
+
+        tag_data = struct.pack('>BBH',
+                               off_high,
+                               len(payload),
+                               off_low) + payload
+        tag_head = tag_header('PAT', len(tag_data))
+
+        self.__add_tag(tag_head + tag_data)
+
+    def add_multi_patch(self, target_addr, payload):
+        """Use multiple PAT tags to insert a patch larger than
+        251 bytes."""
+
+        for pos in range(0, len(payload), MAX_PATCH_SIZE):
+            self.add_patch(
+                target_addr + pos,
+                payload[pos:pos+MAX_PATCH_SIZE]
+            )
+
+    def compile(self):
+        self.__add_end()
+        return ''.join(self.tags)

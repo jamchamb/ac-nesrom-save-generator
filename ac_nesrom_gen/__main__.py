@@ -2,12 +2,12 @@
 import argparse
 import binascii
 import gci
-import struct
 import pkg_resources
-from .util import (block_count, block_align, pack_byte,
+from .util import (block_count, block_align,
                    pack_short, pack_int, calcsum_byte,
                    yaz0_size)
-from .pat_tags import (create_pat, create_tag_buffer)
+from .pat_tags import TagInfoGenerator
+from .bigpatch import BigPatchGenerator
 
 # Memory card block size
 BLOCK_SZ = 0x2000
@@ -57,13 +57,9 @@ def main():
     if args.autoheader:
         args.loader = True
         auto_target = int(args.autoheader, 16)
-        loader_header = struct.pack('>IIII',
-                                    1,  # number of patches
-                                    auto_target,  # target address
-                                    len(romfile),  # size of big patch
-                                    1  # is executable
-                                    )
-        romfile = loader_header + romfile
+        bpg = BigPatchGenerator()
+        bpg.add_patch(auto_target, 1, romfile)
+        romfile = bpg.compile()
 
     if romfile[0:4] == 'Yaz0' and not args.loader:
         # If it's Yaz0 compressed get the size int from header
@@ -79,18 +75,13 @@ def main():
         banner_len = len(banner_file)
 
     # Tag info
-    tags = []
+    tig = TagInfoGenerator()
 
     # Insert loader
-    if args.loader:
+    if args.loader is not None:
         print 'Inserting loader'
-        for pos in range(0, len(MULTI_LOADER), 251):
-            patch_slice = create_pat(LOADER_ADDR + pos,
-                                     MULTI_LOADER[pos:pos+251])
-            tags.append(patch_slice)
-
-        loader_jump = create_pat(ZELDA_FREE, pack_int(LOADER_ADDR))
-        tags.append(loader_jump)
+        tig.add_patch(LOADER_ADDR, MULTI_LOADER)
+        tig.add_patch(ZELDA_FREE, pack_int(LOADER_ADDR))
 
     if args.patch is not None:
         print 'Inserting %u patches' % (len(args.patch))
@@ -98,9 +89,9 @@ def main():
             patch_target = int(patch[0], 16)
             patch_payload = binascii.unhexlify(patch[1])
             print patch
-            tags.append(create_pat(patch_target, patch_payload))
+            tig.add_patch(patch_target, patch_payload)
 
-    tag_info = create_tag_buffer(tags)
+    tag_info = tig.compile()
     tag_info_len = len(tag_info)
 
     total_len = 0x660 + nes_rom_len + banner_len + tag_info_len
