@@ -65,7 +65,7 @@ def main():
         bpg.add_patch(auto_target, 1, romfile)
         romfile = bpg.compile()
     elif args.yaml:
-        # args.loader = True
+        args.loader = True
         bpg = BigPatchGenerator()
         bpg.load_yaml(args.yaml)
         romfile = bpg.compile()
@@ -87,7 +87,7 @@ def main():
     tig = TagInfoGenerator()
 
     # Insert loader
-    if args.loader is not None:
+    if args.loader:
         print 'Inserting loader'
         tig.add_patch(LOADER_ADDR, MULTI_LOADER)
         tig.add_patch(ZELDA_FREE, pack_int(LOADER_ADDR))
