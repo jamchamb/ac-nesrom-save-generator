@@ -84,3 +84,18 @@ patches:
   - target: 0x80002000
     file: debug_printf_c.patch
 ```
+
+This example inserts a patch that will be called immediately after
+it's loaded to `0x80002000`. It also enables the in-game debug console
+without requiring zuru mode to be enabled.
+
+```yaml
+settings:
+  jut_console: true
+
+patches:
+  - target: 0x80002000
+    file: hello_osreport_c.patch
+    flags:
+      jump: true
+```
