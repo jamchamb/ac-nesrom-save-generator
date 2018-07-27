@@ -1,0 +1,9 @@
+settings:
+    jut_console: false
+
+patches:
+  - target: 0x80404E24
+    bytes: '4BBFD1DD'
+
+  - target: 0x80002000
+    file: debug_printf_c.patch

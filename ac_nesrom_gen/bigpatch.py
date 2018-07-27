@@ -1,4 +1,6 @@
+import binascii
 import struct
+import yaml
 
 
 class BigPatchGenerator:
@@ -17,7 +19,7 @@ class BigPatchGenerator:
             len(data),
             flags
         )
-        self.patches.add(info + data)
+        self.patches.append(info + data)
 
     def compile(self):
         header = struct.pack(
@@ -28,3 +30,29 @@ class BigPatchGenerator:
 
         result = header + ''.join(self.patches)
         return result
+
+    def load_yaml(self, filename):
+        with open(filename, 'r') as yaml_file:
+            yaml_data = yaml.safe_load(yaml_file.read())
+
+            settings = yaml_data['settings']
+            patches = yaml_data['patches']
+
+            if settings['jut_console']:
+                self.global_flags |= 1
+
+            for patch in patches:
+                flags = 0
+                if 'jump' in patch:
+                    if patch['jump']:
+                        flags |= 1
+
+                if 'file' in patch:
+                    with open(patch['file'], 'r') as patch_file:
+                        data = patch_file.read()
+                elif 'bytes' in patch:
+                    data = binascii.unhexlify(patch['bytes'])
+
+                self.add_patch(patch['target'],
+                               flags,
+                               data)

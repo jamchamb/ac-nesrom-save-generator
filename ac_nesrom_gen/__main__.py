@@ -45,6 +45,10 @@ def main():
                         help="""Hex encoded patch prefixed with location.
                         Multiple patches are allowed. Max size of each payload
                         is 251.""")
+    parser.add_argument('-y', '--yaml', type=str,
+                        help="""Load YAML description of
+                        a series of big patches with settings""")
+
     args = parser.parse_args()
 
     blank_gci = gci.read_gci(BLANK_GCI_FILE)
@@ -59,6 +63,11 @@ def main():
         auto_target = int(args.autoheader, 16)
         bpg = BigPatchGenerator()
         bpg.add_patch(auto_target, 1, romfile)
+        romfile = bpg.compile()
+    elif args.yaml:
+        # args.loader = True
+        bpg = BigPatchGenerator()
+        bpg.load_yaml(args.yaml)
         romfile = bpg.compile()
 
     if romfile[0:4] == 'Yaz0' and not args.loader:
