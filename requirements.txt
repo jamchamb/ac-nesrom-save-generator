@@ -3,3 +3,4 @@
 enum34==1.1.6
 Pillow==5.1.0
 ply==3.11
+PyYAML==3.13
