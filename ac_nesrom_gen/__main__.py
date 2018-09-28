@@ -6,7 +6,7 @@ import pkg_resources
 from .util import (block_count, block_align,
                    pack_short, pack_int, calcsum_byte,
                    yaz0_size)
-from .pat_tags import TagInfoGenerator
+from .tag_info import TagInfoGenerator
 from .bigpatch import BigPatchGenerator
 
 # Memory card block size
